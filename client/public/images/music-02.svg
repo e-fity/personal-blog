@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <defs>
+    <linearGradient id="g202480" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="480" fill="url(#g202480)"/>
+  <circle cx="18%" cy="66%" r="12%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="92%" cy="72%" r="13%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="66%" cy="78%" r="14%" fill="#ffffff" opacity="0.06"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="53" fill="#ffffff" opacity="0.78" letter-spacing="4">夜航星海</text>
+</svg>

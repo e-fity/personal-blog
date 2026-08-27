@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="g3400" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#g3400)"/>
+  <circle cx="77%" cy="49%" r="11%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="88%" cy="8%" r="12%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="99%" cy="67%" r="13%" fill="#ffffff" opacity="0.06"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="44" fill="#ffffff" opacity="0.78" letter-spacing="4">时楽曳</text>
+</svg>

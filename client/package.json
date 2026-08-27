@@ -1,0 +1,26 @@
+{
+  "name": "digital-garden-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "个人数字花园博客系统前端 (Vue3 + Vite)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "marked": "^12.0.2",
+    "pinia": "^2.2.2",
+    "vue": "^3.4.38",
+    "vue-router": "^4.4.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "vite": "^5.4.2"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "vue-demi@0.14.10": true
+  }
+}

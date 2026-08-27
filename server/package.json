@@ -1,0 +1,17 @@
+{
+  "name": "digital-garden-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "个人数字花园博客系统后端 (Express + SQLite)",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js",
+    "test": "node test/smoke.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1"
+  }
+}

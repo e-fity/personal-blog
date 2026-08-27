@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>exhibition hall · 全息时间轴</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: linear-gradient(135deg, #f6ebf9, #efe7fb, #f9edf3); font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
+    #scene { position: fixed; inset: 0; display: block; }
+
+    .hud {
+      position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+      color: rgba(140, 230, 255, 0.9); font-size: 15px; letter-spacing: 2px;
+      text-shadow: 0 0 12px rgba(0, 220, 255, 0.7); pointer-events: none; white-space: nowrap;
+    }
+    .hud small { display: block; text-align: center; font-size: 12px; letter-spacing: 1px; opacity: 0.7; margin-top: 4px; }
+
+    .detail {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: min(430px, 88vw); padding: 26px 28px;
+      background: rgba(10, 20, 38, 0.72);
+      border: 1px solid rgba(100, 220, 255, 0.55);
+      border-radius: 18px;
+      box-shadow: 0 0 40px rgba(0, 200, 255, 0.35), inset 0 0 24px rgba(0, 200, 255, 0.12);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #e8fbff;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+      transform: translate(-50%, -46%);
+      z-index: 20;
+    }
+    .detail.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+    .detail h2 { font-size: 22px; margin: 0 0 10px; color: #cff7ff; text-shadow: 0 0 14px rgba(80, 220, 255, 0.8); }
+    .detail .meta { color: rgba(140, 220, 255, 0.85); font-size: 13px; margin-bottom: 12px; }
+    .detail .excerpt { color: rgba(225, 245, 255, 0.92); font-size: 15px; line-height: 1.9; }
+    .detail .close {
+      position: absolute; top: 12px; right: 14px; width: 30px; height: 30px;
+      border: 1px solid rgba(120, 220, 255, 0.6); border-radius: 50%;
+      background: transparent; color: #bff2ff; font-size: 16px; line-height: 1;
+      cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+    }
+    .detail .close:hover { background: rgba(0, 200, 255, 0.18); box-shadow: 0 0 14px rgba(0, 220, 255, 0.6); }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.152.2/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.152.2/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="hud">EXHIBITION HALL · 全息时间轴<small>点击卡片查看详情 · 滚轮/拖拽旋转 · 圆柱每 5 秒明暗循环</small></div>
+  <div id="detail" class="detail">
+    <button class="close" id="closeBtn" title="关闭">×</button>
+    <h2 id="dTitle"></h2>
+    <div class="meta" id="dMeta"></div>
+    <div class="excerpt" id="dExcerpt"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three'
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+    // ================= 样例归档数据 =================
+    const ARCHIVE = [
+      { title: '黄昏散步时拍到的花', date: '2026-08-20', excerpt: '今天的晚霞是淡紫色的，风也刚刚好。路过花店的时候，忽然觉得这一整天都值得被记住。', hueA: '#f3b8d4', hueB: '#cdb6f2' },
+      { title: 'Vue3 + Vite 从零搭建个人博客', date: '2026-08-18', excerpt: '毛玻璃、瀑布流、懒加载……把想做的都做一遍，记录一下那些奇怪的坑。', hueA: '#cbb8f4', hueB: '#f0c6de' },
+      { title: '七月照片合集 · 海边的风', date: '2026-08-15', excerpt: '把胶片里的蓝色都留在这个夏天。', hueA: '#8fd0f5', hueB: '#c9b8ef' },
+      { title: '最近循环的歌单分享', date: '2026-08-12', excerpt: '三首很适合深夜听的歌，评论区见。', hueA: '#f7cfe2', hueB: '#d7c3f5' },
+      { title: '关于「数字花园」的一点想法', date: '2026-08-08', excerpt: '在网上拥有自己的角落，是很幸福的事。不追流量，只认真记录。', hueA: '#ddc6f6', hueB: '#f4d3e6' },
+      { title: '给博客加了一个轻量评论系统', date: '2026-08-05', excerpt: '从数据库设计到接口鉴权，全部自己实现，成就感拉满。', hueA: '#f2c4dd', hueB: '#c9b8ef' },
+      { title: '写代码和写日记是一样的', date: '2026-08-01', excerpt: '都是在很安静的时候，把脑子里那些纷乱的东西，一点点理清楚。', hueA: '#9ec6f7', hueB: '#c9b8ef' }
+    ]
+
+    // ================= 场景基础 =================
+    const canvas = document.getElementById('scene')
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.1
+
+    const scene = new THREE.Scene()
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 300)
+    camera.position.set(14, 8, 16)
+
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.target.set(0, 3, 0)
+    controls.autoRotate = true
+    controls.autoRotateSpeed = 0.7
+    controls.enableDamping = true
+    controls.enablePan = false
+    controls.minDistance = 10
+    controls.maxDistance = 34
+    controls.maxPolarAngle = Math.PI * 0.55
+
+    // ================= 模块一：时间轴全息圆柱 =================
+    // 圆柱体 高12 半径2 · 半透明青色 · 菲涅尔边缘辉光 · 内部扫描线噪波 · additive 混合
+    const cylinderMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+      uniforms: { uTime: { value: 0 }, uOpacity: { value: 1 } },
+      vertexShader: `
+        varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vView = normalize(-mv.xyz);
+          vPos = position;
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime; uniform float uOpacity;
+        varying vec3 vNormal; varying vec3 vView; varying vec3 vPos;
+        float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+        void main() {
+          float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 2.6);
+          float scan = 0.5 + 0.5 * sin(vPos.y * 36.0 - uTime * 2.2);
+          float noise = hash(floor(vPos * 14.0));
+          vec3 base = vec3(0.06, 0.80, 0.96);
+          vec3 col = base * (0.28 + fresnel * 1.8 + scan * 0.12 + noise * 0.06);
+          float alpha = (0.28 + fresnel * 0.75) * uOpacity;
+          gl_FragColor = vec4(col, alpha);
+        }
+      `
+    })
+    const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 12, 64, 1, true), cylinderMat)
+    cylinder.position.y = 3
+    scene.add(cylinder)
+
+    // ================= 模块二：归档全息矩形卡片 =================
+    // 环形半径 8 · 均匀环绕 · 半透明蓝紫 · 发光边框 · 微弱噪点 · 面向圆心 · 永久显示
+    const cardMeshes = []
+    const CARD_RADIUS = 8
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      let line = ''
+      let yy = y
+      for (const ch of String(text).split('')) {
+        const test = line + ch
+        if (ctx.measureText(test).width > maxWidth && line) { ctx.fillText(line, x, yy); line = ch; yy += lineHeight }
+        else line = test
+      }
+      if (line) ctx.fillText(line, x, yy)
+    }
+
+    function createCardTexture(item) {
+      const w = 512, h = 700
+      const c = document.createElement('canvas')
+      c.width = w; c.height = h
+      const ctx = c.getContext('2d')
+
+      const g = ctx.createLinearGradient(0, 0, w, h)
+      g.addColorStop(0, 'rgba(150, 120, 255, 0.30)')
+      g.addColorStop(0.5, 'rgba(110, 160, 255, 0.18)')
+      g.addColorStop(1, 'rgba(170, 110, 255, 0.26)')
+      ctx.fillStyle = g
+      ctx.fillRect(0, 0, w, h)
+
+      for (let i = 0; i < 2200; i++) {
+        ctx.fillStyle = `rgba(180, 210, 255, ${Math.random() * 0.1})`
+        ctx.fillRect(Math.random() * w, Math.random() * h, 1.2, 1.2)
+      }
+
+      ctx.strokeStyle = 'rgba(130, 220, 255, 0.95)'
+      ctx.lineWidth = 3
+      ctx.shadowColor = 'rgba(80, 200, 255, 0.9)'
+      ctx.shadowBlur = 18
+      ctx.strokeRect(8, 8, w - 16, h - 16)
+      ctx.shadowBlur = 0
+
+      // 封面渐变
+      const iw = w - 24, ih = Math.round(iw * 0.62)
+      const cg = ctx.createLinearGradient(12, 12, w - 12, 12 + ih)
+      cg.addColorStop(0, item.hueA)
+      cg.addColorStop(1, item.hueB)
+      ctx.save()
+      ctx.beginPath()
+      ctx.roundRect(12, 12, iw, ih, 10)
+      ctx.clip()
+      ctx.fillStyle = cg
+      ctx.fillRect(12, 12, iw, ih)
+      ctx.restore()
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(12, 12, iw, ih)
+
+      ctx.fillStyle = 'rgba(235, 250, 255, 0.96)'
+      ctx.font = 'bold 30px "PingFang SC","Microsoft YaHei",sans-serif'
+      ctx.shadowColor = 'rgba(80, 200, 255, 0.8)'
+      ctx.shadowBlur = 10
+      wrapText(ctx, item.title, 28, 340, w - 56, 38)
+      ctx.shadowBlur = 0
+
+      ctx.fillStyle = 'rgba(150, 220, 255, 0.85)'
+      ctx.font = '22px "PingFang SC","Microsoft YaHei",sans-serif'
+      ctx.fillText(item.date, 28, h - 28)
+
+      const tex = new THREE.CanvasTexture(c)
+      tex.anisotropy = 4
+      return tex
+    }
+
+    const cardGroup = new THREE.Group()
+    const n = ARCHIVE.length
+    const topY = 7.2
+    const stepY = n > 1 ? 10.5 / (n - 1) : 0
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2
+      const y = topY - i * stepY // 最新在最上方
+      const x = Math.sin(angle) * CARD_RADIUS
+      const z = Math.cos(angle) * CARD_RADIUS
+      const tex = createCardTexture(ARCHIVE[i])
+      const geo = new THREE.PlaneGeometry(2.2, 3.0)
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.94, side: THREE.DoubleSide, depthWrite: false, blending: THREE.NormalBlending })
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.position.set(x, y, z)
+      mesh.lookAt(0, y, 0)
+      mesh.rotation.y += Math.PI
+      mesh.userData = { index: i, baseScale: 1 }
+      cardGroup.add(mesh)
+      cardMeshes.push(mesh)
+    }
+    scene.add(cardGroup)
+
+    // ================= 动画时钟：圆柱 5s 可见 / 5s 隐藏，0.8s 淡入淡出 =================
+    const clock = new THREE.Clock()
+    const CYCLE = 10
+    const FADE = 0.8
+
+    function computeOpacity(t) {
+      const phase = t % CYCLE
+      if (phase < 5) return phase < FADE ? phase / FADE : 1
+      const inv = phase - 5
+      return inv < FADE ? 1 - inv / FADE : 0
+    }
+
+    // ================= 鼠标交互：Raycaster 点击卡片/空白、hover 放大高亮 =================
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+    const detailEl = document.getElementById('detail')
+    const dTitle = document.getElementById('dTitle')
+    const dMeta = document.getElementById('dMeta')
+    const dExcerpt = document.getElementById('dExcerpt')
+    let hoverMesh = null
+    let pressed = { x: 0, y: 0, moved: false }
+
+    function setPointer(e) {
+      pointer.x = (e.clientX / window.innerWidth) * 2 - 1
+      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1
+    }
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      setPointer(e)
+      raycaster.setFromCamera(pointer, camera)
+      const hits = raycaster.intersectObjects(cardMeshes)
+      const hit = hits[0] ? hits[0].object : null
+      if (hoverMesh !== hit) {
+        hoverMesh = hit
+        renderer.domElement.style.cursor = hit ? 'pointer' : 'grab'
+      }
+    })
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      pressed = { x: e.clientX, y: e.clientY, moved: false }
+    })
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const moved = Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) > 6
+      if (moved) return
+      setPointer(e)
+      raycaster.setFromCamera(pointer, camera)
+      const hits = raycaster.intersectObjects(cardMeshes)
+      if (hits.length) {
+        const item = ARCHIVE[hits[0].object.userData.index]
+        dTitle.textContent = item.title
+        dMeta.textContent = item.date
+        dExcerpt.textContent = item.excerpt
+        detailEl.classList.add('show')
+      } else {
+        detailEl.classList.remove('show')
+      }
+    })
+
+    document.getElementById('closeBtn').addEventListener('click', () => detailEl.classList.remove('show'))
+
+    // ================= 渲染循环 =================
+    function animate() {
+      requestAnimationFrame(animate)
+      const delta = clock.getDelta()
+      const elapsed = clock.elapsedTime
+
+      // 圆柱显隐：控制 material.opacity
+      const op = computeOpacity(elapsed)
+      cylinderMat.opacity = op
+      cylinderMat.uniforms.uTime.value = elapsed
+      cylinderMat.uniforms.uOpacity.value = op
+
+      // 卡片 hover 放大高亮反馈（平滑过渡）
+      for (const m of cardMeshes) {
+        const target = m === hoverMesh ? 1.08 : 1
+        const s = m.scale.x + (target - m.scale.x) * Math.min(1, delta * 8)
+        m.scale.setScalar(s)
+        const targetColor = m === hoverMesh ? 0xcfefff : 0xffffff
+        m.material.color.lerp(new THREE.Color(targetColor), Math.min(1, delta * 8))
+        m.material.opacity += ((m === hoverMesh ? 1 : 0.94) - m.material.opacity) * Math.min(1, delta * 8)
+      }
+
+      controls.update()
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight
+      camera.updateProjectionMatrix()
+      renderer.setSize(window.innerWidth, window.innerHeight)
+    })
+
+    window.__holo3d = {
+      cards: cardMeshes.length,
+      cylinder: true,
+      projectCard(i) {
+        const v = cardMeshes[i].getWorldPosition(new THREE.Vector3()).project(camera)
+        return { x: ((v.x + 1) / 2) * window.innerWidth, y: ((-v.y + 1) / 2) * window.innerHeight }
+      }
+    }
+  </script>
+</body>
+</html>

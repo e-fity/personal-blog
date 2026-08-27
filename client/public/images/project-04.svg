@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="g14800" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g14800)"/>
+  <circle cx="26%" cy="62%" r="22%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="44%" cy="4%" r="23%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="62%" cy="46%" r="24%" fill="#ffffff" opacity="0.06"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="50" fill="#ffffff" opacity="0.78" letter-spacing="4">数据面板</text>
+</svg>

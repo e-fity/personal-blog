@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480">
+  <defs>
+    <linearGradient id="g91600" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="480" fill="url(#g91600)"/>
+  <circle cx="31%" cy="47%" r="17%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="64%" cy="24%" r="18%" fill="#ffffff" opacity="0.06"/>
+  <circle cx="97%" cy="1%" r="19%" fill="#ffffff" opacity="0.06"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="48" fill="#ffffff" opacity="0.78" letter-spacing="4">DIGITAL GARDEN</text>
+</svg>
