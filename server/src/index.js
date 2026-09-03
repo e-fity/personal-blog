@@ -5,6 +5,7 @@ import { dirname, join, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import routes from './routes/index.js';
 import { seedIfEmpty } from './seed.js';
+import { syncPostsFts, syncProjectsFts } from './db.js';
 import { requireAdmin } from './auth.js';
 import { ok, fail } from './helpers.js';
 
@@ -14,6 +15,8 @@ const DIST_DIR = join(__dirname, '..', '..', 'client', 'dist');
 
 mkdirSync(UPLOAD_DIR, { recursive: true });
 seedIfEmpty();
+syncPostsFts();
+syncProjectsFts();
 
 // 生产环境必须使用自定义密钥，避免默认密钥泄露
 if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_SECRET || process.env.ADMIN_SECRET === 'digital-garden-local-secret-change-me')) {
@@ -42,15 +45,19 @@ export function createApp() {
 
   app.use('/uploads', express.static(UPLOAD_DIR));
 
-  // ---- 文件上传（base64）：图片 / 音频 / LRC ----
+  // ---- 文件上传（base64）：图片 / 音频 / LRC / 歌单 / zip ----
   const AUDIO_EXTS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.opus', '.wma']);
   const TEXT_EXTS = new Set(['.lrc', '.txt', '.srt']);
   const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif', '.bmp', '.ico']);
-  const ALLOWED_EXTS = new Set([...AUDIO_EXTS, ...TEXT_EXTS, ...IMAGE_EXTS]);
+  const PLAYLIST_EXTS = new Set(['.m3u', '.m3u8', '.pls', '.xspf']);
+  const ARCHIVE_EXTS = new Set(['.zip']);
+  const ALLOWED_EXTS = new Set([...AUDIO_EXTS, ...TEXT_EXTS, ...IMAGE_EXTS, ...PLAYLIST_EXTS, ...ARCHIVE_EXTS]);
 
   function uploadLimit(ext) {
     if (AUDIO_EXTS.has(ext)) return 45 * 1024 * 1024;
     if (TEXT_EXTS.has(ext)) return 2 * 1024 * 1024;
+    if (PLAYLIST_EXTS.has(ext)) return 2 * 1024 * 1024;
+    if (ARCHIVE_EXTS.has(ext)) return 200 * 1024 * 1024;
     return 10 * 1024 * 1024;
   }
 
@@ -102,7 +109,15 @@ export function createApp() {
 // 直接运行时启动服务（测试环境通过 createApp 自行监听）
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = process.env.PORT || 3000;
-  createApp().listen(PORT, () => {
+  const server = createApp().listen(PORT, () => {
     console.log(`🌱 数字花园后端已启动: http://localhost:${PORT}`);
+  });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ 端口 ${PORT} 已被占用，请先关闭占用该端口的进程，或使用 set PORT=xxxx 换端口启动`);
+    } else {
+      console.error('❌ 服务器启动失败:', err.message);
+    }
+    process.exit(1);
   });
 }

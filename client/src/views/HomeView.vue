@@ -33,14 +33,13 @@ const exhibitionProjects = computed(() => (hasExhibition.value ? featuredProject
 
 onMounted(async () => {
   try {
-    const [all, featured, allProjects, allPhotos] = await Promise.all([
+    const [all, allProjects, allPhotos] = await Promise.all([
       api.get('/posts?limit=100'),
-      api.get('/posts?featured=1&limit=100'),
       api.get('/projects'),
       api.get('/photos')
     ])
     posts.value = all
-    featuredPosts.value = featured
+    featuredPosts.value = all.filter((p) => p.featured)
     projects.value = allProjects
     featuredProjects.value = allProjects.filter((p) => p.featured)
     photos.value = allPhotos
@@ -58,9 +57,9 @@ onMounted(async () => {
         <h1>{{ store.settings.name || 'XingHuiSama' }}</h1>
         <p class="profile-card__bio">{{ store.settings.bio || '记录生活 · 分享热爱 · 认真长大' }}</p>
         <div class="profile-card__stats">
-          <div><strong>{{ posts.length }}</strong><span>文章</span></div>
-          <div><strong>{{ projects.length }}</strong><span>项目</span></div>
-          <div><strong>{{ photos.length }}</strong><span>照片</span></div>
+          <div><strong>{{ posts.length }}</strong><span>{{ store.t('posts') }}</span></div>
+          <div><strong>{{ projects.length }}</strong><span>{{ store.t('projectsLabel') }}</span></div>
+          <div><strong>{{ photos.length }}</strong><span>{{ store.t('photosLabel') }}</span></div>
         </div>
         <div class="profile-card__socials">
           <a v-for="s in (store.settings.socials || [])" :key="s.name" :href="s.url" target="_blank" rel="noopener" :title="s.name">
@@ -83,8 +82,8 @@ onMounted(async () => {
 
     <section>
       <div class="section-title">
-        <span>展览精品</span>
-        <RouterLink to="/projects" class="more">更多作品 →</RouterLink>
+        <span>{{ store.t('exhibition') }}</span>
+        <RouterLink to="/projects" class="more">{{ store.t('moreWorks') }}</RouterLink>
       </div>
       <div class="masonry">
         <ProjectCard v-for="project in exhibitionProjects" :key="`proj-${project.id}`" :project="project" />

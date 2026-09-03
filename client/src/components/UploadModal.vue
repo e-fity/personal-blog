@@ -10,7 +10,7 @@ const props = defineProps({
   hint: { type: String, default: '' }
 })
 
-const emit = defineEmits(['close', 'use'])
+const emit = defineEmits(['close', 'use', 'exif'])
 
 const urlInput = ref('')
 const file = ref(null)
@@ -34,6 +34,7 @@ const ratios = [
 const ratio = ref('')
 const crop = reactive({ x: 0.5, y: 0.5 })
 const imgMeta = reactive({ w: 0, h: 0 })
+const exifYear = ref(null)
 let draggingCrop = false
 let cropStart = { x: 0, y: 0, cx: 0, cy: 0 }
 
@@ -79,6 +80,7 @@ function reset() {
   crop.y = 0.5
   imgMeta.w = 0
   imgMeta.h = 0
+  exifYear.value = null
 }
 
 watch(
@@ -112,6 +114,7 @@ function setFile(f) {
   error.value = ''
   result.value = ''
   if (isImage.value) {
+    exifYear.value = null
     const reader = new FileReader()
     reader.onload = () => {
       preview.value = reader.result
@@ -126,6 +129,9 @@ function setFile(f) {
       img.src = reader.result
     }
     reader.readAsDataURL(f)
+    readExifDate(f).then((info) => {
+      if (info) exifYear.value = info
+    })
   } else {
     preview.value = ''
   }
@@ -182,6 +188,81 @@ async function cropToDataUrl() {
   return canvas.toDataURL('image/webp', 0.9)
 }
 
+// 图片压缩：最长边 1600、WebP 输出（SVG/GIF/AVIF 保持原样）
+async function compressToDataUrl() {
+  const img = await new Promise((resolve, reject) => {
+    const im = new Image()
+    im.onload = () => resolve(im)
+    im.onerror = reject
+    im.src = preview.value
+  })
+  const max = 1600
+  const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight))
+  const w = Math.max(1, Math.round(img.naturalWidth * scale))
+  const h = Math.max(1, Math.round(img.naturalHeight * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+  return canvas.toDataURL('image/webp', 0.85)
+}
+
+function shouldCompress(file) {
+  return /\.(jpe?g|png|webp|bmp)$/i.test(file.name)
+}
+
+// 读取 JPEG EXIF 拍摄日期（DateTimeOriginal / DateTime）
+async function readExifDate(file) {
+  if (!/\.jpe?g$/i.test(file.name)) return null
+  try {
+    const buf = new Uint8Array(await file.slice(0, 131072).arrayBuffer())
+    if (buf[0] !== 0xff || buf[1] !== 0xd8) return null
+    let off = 2
+    while (off < buf.length - 4) {
+      if (buf[off] !== 0xff) {
+        off++
+        continue
+      }
+      const marker = buf[off + 1]
+      const len = (buf[off + 2] << 8) | buf[off + 3]
+      if (marker === 0xe1 && len > 8) {
+        const seg = buf.subarray(off + 4, off + 2 + len)
+        if (String.fromCharCode(...seg.subarray(0, 6)) === 'Exif\0\0') return parseExifTiff(seg)
+      }
+      off += 2 + len
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function parseExifTiff(seg) {
+  const le = String.fromCharCode(seg[6], seg[7]) === 'II'
+  const u16 = (o) => (le ? seg[o] | (seg[o + 1] << 8) : (seg[o] << 8) | seg[o + 1])
+  const u32 = (o) =>
+    le
+      ? seg[o] | (seg[o + 1] << 8) | (seg[o + 2] << 16) | (seg[o + 3] << 24)
+      : (seg[o] << 24) | (seg[o + 1] << 16) | (seg[o + 2] << 8) | seg[o + 3]
+  if (u16(8) !== 0x2a) return null
+  const ifd0 = u32(10)
+  const count = u16(ifd0)
+  for (let i = 0; i < count; i++) {
+    const entry = ifd0 + 2 + i * 12
+    const tag = u16(entry)
+    if (tag === 0x9003 || tag === 0x0132) {
+      if (u16(entry + 2) === 2) {
+        const len = u32(entry + 4)
+        const dataOff = len > 4 ? entry + 8 + u32(entry + 8) : entry + 8
+        const dateStr = String.fromCharCode(...seg.subarray(dataOff, dataOff + Math.min(len, 19)))
+        const m = dateStr.match(/(\d{4}):(\d{2}):(\d{2})/)
+        if (m) return { year: Number(m[1]), date: dateStr.replaceAll(':', '-') }
+      }
+    }
+  }
+  return null
+}
+
 function useUrl() {
   const value = urlInput.value.trim()
   if (value) emit('use', value)
@@ -192,7 +273,11 @@ async function upload() {
   uploading.value = true
   error.value = ''
   try {
-    result.value = showCrop.value ? await uploadFile(await cropToDataUrl()) : await uploadFile(file.value)
+    let dataUrl = null
+    if (isImage.value && file.value && shouldCompress(file.value)) {
+      dataUrl = showCrop.value ? await cropToDataUrl() : await compressToDataUrl()
+    }
+    result.value = dataUrl ? await uploadFile(dataUrl) : await uploadFile(file.value)
   } catch (e) {
     error.value = e.message
   } finally {
@@ -206,6 +291,7 @@ function copy() {
 
 function use() {
   if (result.value) emit('use', result.value)
+  if (exifYear.value) emit('exif', { year: exifYear.value.year })
 }
 
 function onKey(e) {

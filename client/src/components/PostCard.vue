@@ -1,16 +1,21 @@
 <script setup>
 import { tagClass } from '../tags.js'
 
-defineProps({ post: { type: Object, required: true } })
+const props = defineProps({
+  post: { type: Object, required: true },
+  type: { type: String, default: 'post' } // 'post' | 'essay'
+})
 
 function formatDate(value) {
   if (!value) return ''
   return new Date(value).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
+
+const detailPath = () => (props.type === 'essay' ? `/essay/${props.post.id}` : `/blog/${props.post.id}`)
 </script>
 
 <template>
-  <RouterLink :to="`/blog/${post.id}`" class="glass card card--hover post-card" style="color: inherit">
+  <RouterLink :to="detailPath()" class="glass card card--hover post-card" style="color: inherit">
     <div class="post-card__cover-wrap">
       <img class="post-card__cover" :src="post.cover || '/images/post-cover-01.svg'" :alt="post.title" loading="lazy" />
     </div>

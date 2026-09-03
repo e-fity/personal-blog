@@ -20,7 +20,7 @@ function formatDate(value) {
 
 async function load() {
   try {
-    messages.value = await api.get('/messages')
+    messages.value = await api.get('/messages?type=guestbook')
   } catch {
     messages.value = []
   }
@@ -62,7 +62,7 @@ onMounted(load)
 <template>
   <div>
     <div class="section-title">
-      <span>留言板</span>
+      <span>{{ store.t('guestbook') }}</span>
       <span class="muted" style="font-size: 0.88rem">共 {{ messages.length }} 条</span>
     </div>
     <p class="muted" style="margin: -10px 0 22px">无需注册，留下你的足迹，也可以自定义昵称。</p>

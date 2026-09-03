@@ -10,6 +10,7 @@ import linksRouter from './links.js';
 import musicRouter from './music.js';
 import searchRouter from './search.js';
 import collectionsRouter from './collections.js';
+import essaysRouter from './essays.js';
 
 const router = Router();
 router.use(settingsRouter);
@@ -23,5 +24,6 @@ router.use(linksRouter);
 router.use(musicRouter);
 router.use(searchRouter);
 router.use(collectionsRouter);
+router.use(essaysRouter);
 
 export default router;

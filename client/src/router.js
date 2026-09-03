@@ -11,6 +11,7 @@ const routes = [
   { path: '/collections/:id', name: 'collection', component: () => import('./views/CollectionDetailView.vue') },
   { path: '/blog', name: 'blog', component: () => import('./views/BlogView.vue') },
   { path: '/blog/:id', name: 'post', component: () => import('./views/PostView.vue') },
+  { path: '/essay/:id', name: 'essay', component: () => import('./views/EssayView.vue') },
   { path: '/archive', name: 'archive', component: () => import('./views/ArchiveView.vue') },
   { path: '/guestbook', name: 'guestbook', component: () => import('./views/GuestbookView.vue') },
   { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },

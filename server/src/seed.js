@@ -267,7 +267,7 @@ export function seedIfEmpty() {
   const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
   if (!admin) {
     const now = new Date().toISOString();
-    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const password = process.env.ADMIN_PASSWORD || 'lxy123';
     db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run(
       'admin',
       hashPassword(password)

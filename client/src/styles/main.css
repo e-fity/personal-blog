@@ -50,6 +50,28 @@
   --scrim: rgba(0, 0, 0, 0.55);
 }
 
+/* 主题色预设（叠加在日/夜主题之上） */
+:root[data-accent='mint'] {
+  --accent: #14b8a6;
+  --accent-2: #34d399;
+  --accent-grad: linear-gradient(135deg, #34d399, #14b8a6);
+  --accent-soft: rgba(20, 184, 166, 0.14);
+}
+
+:root[data-accent='sky'] {
+  --accent: #3b82f6;
+  --accent-2: #38bdf8;
+  --accent-grad: linear-gradient(135deg, #38bdf8, #3b82f6);
+  --accent-soft: rgba(59, 130, 246, 0.14);
+}
+
+:root[data-accent='peach'] {
+  --accent: #fb7185;
+  --accent-2: #f59e0b;
+  --accent-grad: linear-gradient(135deg, #f59e0b, #fb7185);
+  --accent-soft: rgba(251, 113, 133, 0.14);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1391,6 +1413,29 @@ select {
   background: #fff;
 }
 
+.accent-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.accent-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.accent-swatch:hover {
+  transform: scale(1.15);
+}
+
+.accent-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
 /* 归档 · 楼梯样式 */
 .archive-stairs {
   position: relative;
@@ -1478,6 +1523,67 @@ select {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* 归档 · 3D/列表视图切换 */
+.archive-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--glass-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.archive-view-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  padding: 4px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.archive-view-toggle button.active {
+  background: var(--accent-grad);
+  color: #fff;
+}
+
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.archive-list__item {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 18px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.archive-list__date {
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  flex: none;
+  min-width: 96px;
+}
+
+.archive-list__title {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.96rem;
+  transition: color 0.2s;
+}
+
+.archive-list__title:hover {
+  color: var(--accent);
 }
 
 /* 归档 · 卡片悬浮详情面板 */
@@ -1973,6 +2079,38 @@ select {
   display: flex;
   gap: 6px;
   flex: none;
+}
+
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 14px 0;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.cover-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cover-picker img {
+  width: 76px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.cover-picker img.active {
+  border-color: var(--accent);
 }
 
 .admin-panel {

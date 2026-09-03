@@ -11,6 +11,7 @@
     "test": "node test/smoke.mjs"
   },
   "dependencies": {
+    "adm-zip": "^0.6.0",
     "cors": "^2.8.5",
     "express": "^5.2.1"
   }

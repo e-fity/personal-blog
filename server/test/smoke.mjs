@@ -144,6 +144,48 @@ try {
   const s3 = await req('GET', '/api/search?q=不存在的关键词xyz');
   check('搜索空结果', s3.status === 200 && s3.data.posts.length + s3.data.projects.length + s3.data.photos.length + s3.data.links.length === 0);
 
+  // 草稿与定时发布
+  const draft = await req('POST', '/api/posts', { title: '草稿文章', content: 'draft', published: 0 }, token);
+  check('创建草稿', draft.status === 201);
+  check('草稿不出现在公开列表', !(await req('GET', '/api/posts?limit=100')).data.some((p) => p.id === draft.data.id));
+  check('后台全量列表含草稿', (await req('GET', '/api/posts?all=1&limit=100', null, token)).data.some((p) => p.id === draft.data.id));
+  check('草稿公开详情404', (await req('GET', `/api/posts/${draft.data.id}`)).status === 404);
+  check('管理员获取草稿全文', (await req('GET', `/api/posts/${draft.data.id}?admin=1`, null, token)).data.content === 'draft');
+
+  const future = new Date(Date.now() + 86400000).toISOString();
+  const sched = await req('POST', '/api/posts', { title: '定时文章', content: 'x', published: 1, publish_at: future }, token);
+  check('创建定时文章', sched.status === 201);
+  check('未到时间不公开', !(await req('GET', '/api/posts?limit=100')).data.some((p) => p.id === sched.data.id));
+  const past = new Date(Date.now() - 86400000).toISOString();
+  await req('PUT', `/api/posts/${sched.data.id}`, { publish_at: past }, token);
+  check('到时间后公开', (await req('GET', '/api/posts?limit=100')).data.some((p) => p.id === sched.data.id));
+  await req('DELETE', `/api/posts/${draft.data.id}`, null, token);
+  await req('DELETE', `/api/posts/${sched.data.id}`, null, token);
+
+  // FTS 全文搜索
+  const f1 = await req('GET', '/api/search?q=' + encodeURIComponent('秋天的'));
+  check('FTS 命中文章', f1.status === 200 && f1.data.posts.length > 0);
+  const f2 = await req('GET', '/api/search?q=' + encodeURIComponent('照片墙的瀑布流'));
+  check('FTS 长词命中', f2.status === 200 && f2.data.posts.length > 0);
+
+  // 歌单：m3u 文件导入（去重）
+  const m3u = [
+    '#EXTM3U',
+    '#EXTINF:100,测试艺人 - 测试歌曲',
+    'https://example.com/a.mp3',
+    '#EXTINF:90,重复歌曲',
+    'https://example.com/a.mp3'
+  ].join('\n');
+  const imp = await req(
+    'POST',
+    '/api/music/import',
+    { filename: 'playlist.m3u', data: Buffer.from(m3u).toString('base64'), playlist_title: '测试歌单' },
+    token
+  );
+  check('导入 m3u 歌单并去重', imp.status === 201 && imp.data.imported === 1 && imp.data.skipped === 1);
+  check('歌单列表接口', (await req('GET', '/api/playlists')).data.some((p) => p.title === '测试歌单'));
+  check('歌单详情接口', (await req('GET', `/api/playlists/${imp.data.playlist_id}`)).data.tracks.length === 1);
+
   console.log(`\n全部通过：${passed} 项`);
 } finally {
   server.close();

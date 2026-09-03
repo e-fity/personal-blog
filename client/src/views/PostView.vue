@@ -26,7 +26,7 @@ onMounted(async () => {
 
 <template>
   <div v-if="post" class="card" style="padding: 36px 40px">
-    <RouterLink to="/blog" class="btn btn--ghost btn--sm" style="margin-bottom: 18px">← 返回杂谈</RouterLink>
+    <RouterLink to="/archive" class="btn btn--ghost btn--sm" style="margin-bottom: 18px">← 返回归档</RouterLink>
     <h1 style="font-size: 1.9rem; margin: 0 0 14px">{{ post.title }}</h1>
     <div class="post-card__meta" style="margin-bottom: 18px">
       <span>{{ formatDate(post.created_at) }}</span>

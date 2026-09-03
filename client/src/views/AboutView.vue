@@ -10,7 +10,7 @@ const settings = computed(() => store.settings)
 
 <template>
   <div>
-    <div class="section-title"><span>关于</span></div>
+    <div class="section-title"><span>{{ store.t('aboutTitle') }}</span></div>
     <div class="card" style="padding: 36px 40px">
       <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 22px">
         <img :src="settings.avatar || '/images/avatar.svg'" alt="" style="width: 92px; height: 92px; border-radius: 50%; object-fit: cover" />
